@@ -1,0 +1,34 @@
+name: http-proxy-project
+services:
+  # ۱. سرویس پروکسی معکوس با احراز هویت JWT
+  proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jwt_reverse_proxy
+    ports:
+      - "8080:80" # انتشار پورت 80 به اینترنت/شبکه خارجی
+    environment:
+      - PORT=80
+      - TARGET_URL=http://backend_httpbin:8081 # ارجاع به سرویس داخلی روی پورت 8081
+      - JWT_SECRET=my_super_secret_key_123456 # کلید secret برای اعتبارسنجی JWT
+    depends_on:
+      - backend_httpbin
+    networks:
+      - internal_network
+    restart: always
+
+  # ۲. سرویس اصلی و قدیمی (Legacy Service)
+  backend_httpbin:
+    image: ghcr.io/mccutchen/go-httpbin:latest
+    container_name: legacy_httpbin_service
+    # دقت کنید: هیچ پورت خارجی (ports) ست نشده تا فقط از داخل شبکه داخلی دسترس‌پذیر باشد
+    environment:
+      - PORT=8081
+    networks:
+      - internal_network
+    restart: always
+
+networks:
+  internal_network:
+    driver: bridge
